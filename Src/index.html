@@ -137,7 +137,7 @@
 
     const ground = new THREE.Mesh(groundGeo, groundMat);
     ground.rotation.x = -Math.PI / 2;
-    ground.position.y = 0;
+    ground.position.y = -100;
     ground.receiveShadow = true;
     scene.add(ground);
 
@@ -211,6 +211,70 @@
         ),
       (err) => console.error(err)
     );
+
+    //PBR Material
+    loader.load(
+      "https://Maniwan.github.io/Portfolio_bow/3DModels/pbrm1.glb",
+      (gltf) => {
+        const pbrm1 = gltf.scene;
+        pbrm1.traverse((o) => {
+          if (o.isMesh) {
+            o.castShadow = true;
+            o.receiveShadow = true;
+            if (o.material && o.material.map) {
+              o.material.map.encoding = THREE.sRGBEncoding;
+              o.material.needsUpdate = true;
+            }
+          }
+        });
+        pbrm1.position.set(8.5,15.5,-8.7);
+        pbrm1.scale.set(0.5,0.5,0.5);
+        //pbrm.rotation.y = Math.PI / 2;
+        pbrm1.rotation.y = THREE.MathUtils.degToRad(0);
+        scene.add(pbrm1);
+      },
+      (xhr) =>
+        console.log(
+          `Loading: ${(xhr.total 
+            ? (xhr.loaded / xhr.total) * 100
+            : 0
+          ).toFixed(1)}%`
+        ),
+      (err) => console.error(err)
+    );
+
+     //PBR
+    loader.load(
+      "https://Maniwan.github.io/Portfolio_bow/3DModels/pbr.glb",
+      
+      (gltf) => {
+        const pbr = gltf.scene;
+        pbr.traverse((o) => {
+          if (o.isMesh) {
+            o.castShadow = true;
+            o.receiveShadow = true;
+            if (o.material && o.material.map) {
+              o.material.map.encoding = THREE.sRGBEncoding;
+              o.material.needsUpdate = true;
+            }
+          }
+        });
+        pbr.position.set(48.6,1,46);
+        pbr.scale.set(1.5,1.5,1.5);
+        //PBR.rotation.y = Math.PI / 2;
+        pbr.rotation.y = THREE.MathUtils.degToRad(0);
+        scene.add(pbr);
+      },
+      (xhr) =>
+        console.log(
+          `Loading: ${(xhr.total 
+            ? (xhr.loaded / xhr.total) * 100
+            : 0
+          ).toFixed(1)}%`
+        ),
+      (err) => console.error(err)
+    );
+
 
     //ป้าย
      loader.load(
