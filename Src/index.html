@@ -5,8 +5,15 @@
     <title>Portfolio_bow</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <style>
-      html, body { height: 100%; margin: 0; overflow: hidden; }
-      canvas { display: block; }
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+      }
+      canvas {
+        display: block;
+      }
     </style>
 
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
@@ -43,7 +50,12 @@
 
       const scene = new THREE.Scene();
 
-      const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+      const camera = new THREE.PerspectiveCamera(
+        75,
+        window.innerWidth / window.innerHeight,
+        0.1,
+        1000
+      );
       camera.position.set(6.9, 19, 0);
       camera.lookAt(6.9, 19, -10);
 
@@ -69,7 +81,14 @@
       dirLight.shadow.normalBias = 0.02;
       scene.add(dirLight);
 
-      const spotLight = new THREE.SpotLight(0xfff0d5, 0.5, 200, Math.PI / 8, 0.4, 2);
+      const spotLight = new THREE.SpotLight(
+        0xfff0d5,
+        0.5,
+        200,
+        Math.PI / 8,
+        0.4,
+        2
+      );
       spotLight.position.set(-71.3, 34, 60);
       spotLight.target.position.set(-95, 34, 74);
       spotLight.castShadow = true;
@@ -85,7 +104,11 @@
          Ground
       ========================= */
       const groundGeo = new THREE.PlaneGeometry(50, 50);
-      const groundMat = new THREE.MeshStandardMaterial({ color: 0x777777, roughness: 0.8, metalness: 0.2 });
+      const groundMat = new THREE.MeshStandardMaterial({
+        color: 0x777777,
+        roughness: 0.8,
+        metalness: 0.2,
+      });
       const ground = new THREE.Mesh(groundGeo, groundMat);
       ground.rotation.x = -Math.PI / 2;
       ground.position.y = -100;
@@ -108,258 +131,364 @@
       const clickTargets = [];
 
       const CAM_PRESET = {
-        text: { pos: new THREE.Vector3(-71.3, 34, 60), look: new THREE.Vector3(-95, 34, 74) },
-        pbrm1: { pos: new THREE.Vector3(50, 2, 55), look: new THREE.Vector3(51, 2, 42) },
-        back: { pos: new THREE.Vector3(6.9, 19, 0), look: new THREE.Vector3(6.9, 19, -10) },
-        back1: { pos: new THREE.Vector3(6.9, 19, 0), look: new THREE.Vector3(6.9, 19, -10) }
+        text: {
+          pos: new THREE.Vector3(-71.3, 34, 60),
+          look: new THREE.Vector3(-95, 34, 74),
+        },
+        pbrm1: {
+          pos: new THREE.Vector3(50, 2, 55),
+          look: new THREE.Vector3(51, 2, 42),
+        },
+        back: {
+          pos: new THREE.Vector3(6.9, 19, 0),
+          look: new THREE.Vector3(6.9, 19, -10),
+        },
+        back1: {
+          pos: new THREE.Vector3(6.9, 19, 0),
+          look: new THREE.Vector3(6.9, 19, -10),
+        },
       };
 
       let pbr = null;
+
+      // === Gradient map สำหรับ Toon (โทนแสงเป็นขั้น ๆ) ===
+      function makeGradientMap(steps = 4) {
+        const size = 256;
+        const data = new Uint8Array(size);
+        for (let i = 0; i < size; i++) {
+          const t = Math.floor((i / size) * steps) / (steps - 1);
+          data[i] = Math.round(t * 255);
+        }
+        const tex = new THREE.DataTexture(data, size, 1, THREE.LuminanceFormat);
+        tex.needsUpdate = true;
+        tex.minFilter = THREE.NearestFilter;
+        tex.magFilter = THREE.NearestFilter;
+        return tex;
+      }
+      const CEL_GRADIENT = makeGradientMap(4); // ปรับ 3–5 ขั้นตามชอบ
 
       /* ========================
          Loaders
       ========================= */
       const draco = new THREE.DRACOLoader();
-      draco.setDecoderPath("https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/libs/draco/");
+      draco.setDecoderPath(
+        "https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/libs/draco/"
+      );
       const loader = new THREE.GLTFLoader();
       loader.setDRACOLoader(draco);
 
-      loader.load("https://Maniwan.github.io/Portfolio_bow/3DModels/name1.glb", (gltf) => {
-        const name1 = gltf.scene;
-        name1.traverse((o) => {
-          if (o.isMesh) {
-            o.castShadow = true;
-            o.receiveShadow = true;
-            if (o.material && o.material.map) {
-              o.material.map.encoding = THREE.sRGBEncoding;
-              o.material.needsUpdate = true;
+      loader.load(
+        "https://Maniwan.github.io/Portfolio_bow/3DModels/name1.glb",
+        (gltf) => {
+          const name1 = gltf.scene;
+          name1.traverse((o) => {
+            if (o.isMesh) {
+              o.castShadow = true;
+              o.receiveShadow = true;
+              if (o.material && o.material.map) {
+                o.material.map.encoding = THREE.sRGBEncoding;
+                o.material.needsUpdate = true;
+              }
             }
-          }
-        });
-        name1.position.set(-93.4, 25, 75);
-        name1.scale.set(2.5, 2.5, 2.5);
-        name1.rotation.y = THREE.MathUtils.degToRad(120);
-        scene.add(name1);
-      });
+          });
+          name1.position.set(-93.4, 25, 75);
+          name1.scale.set(2.5, 2.5, 2.5);
+          name1.rotation.y = THREE.MathUtils.degToRad(120);
+          scene.add(name1);
+        }
+      );
 
-      loader.load("https://Maniwan.github.io/Portfolio_bow/3DModels/text.glb", (gltf) => {
-        const text = gltf.scene;
-        text.traverse((o) => {
-          if (o.isMesh) {
-            o.castShadow = true;
-            o.receiveShadow = true;
-            if (o.material && o.material.map) {
-              o.material.map.encoding = THREE.sRGBEncoding;
-              o.material.needsUpdate = true;
+      loader.load(
+        "https://Maniwan.github.io/Portfolio_bow/3DModels/text.glb",
+        (gltf) => {
+          const text = gltf.scene;
+          text.traverse((o) => {
+            if (o.isMesh) {
+              o.castShadow = true;
+              o.receiveShadow = true;
+              if (o.material && o.material.map) {
+                o.material.map.encoding = THREE.sRGBEncoding;
+                o.material.needsUpdate = true;
+              }
             }
-          }
-        });
-        text.position.set(8.5, 17, -9);
-        text.scale.set(0.8, 0.8, 0.8);
-        text.rotation.y = THREE.MathUtils.degToRad(0);
-        scene.add(text);
-        text.userData.key = "text";
-        clickTargets.push(text);
-        text.traverse((o) => {
-          if (o.isMesh && o.material && o.material.color) o.userData.baseColor = o.material.color.clone();
-        });
-        hoverTargets.push(text);
-      });
+          });
+          text.position.set(8.5, 17, -9);
+          text.scale.set(0.8, 0.8, 0.8);
+          text.rotation.y = THREE.MathUtils.degToRad(0);
+          scene.add(text);
+          text.userData.key = "text";
+          clickTargets.push(text);
+          text.traverse((o) => {
+            if (o.isMesh && o.material && o.material.color)
+              o.userData.baseColor = o.material.color.clone();
+          });
+          hoverTargets.push(text);
+        }
+      );
 
-      loader.load("https://Maniwan.github.io/Portfolio_bow/3DModels/pbrm1.glb", (gltf) => {
-        const pbrm1 = gltf.scene;
-        pbrm1.traverse((o) => {
-          if (o.isMesh) {
-            o.castShadow = true;
-            o.receiveShadow = true;
-            if (o.material && o.material.map) {
-              o.material.map.encoding = THREE.sRGBEncoding;
-              o.material.needsUpdate = true;
+      loader.load(
+        "https://Maniwan.github.io/Portfolio_bow/3DModels/pbrm1.glb",
+        (gltf) => {
+          const pbrm1 = gltf.scene;
+          pbrm1.traverse((o) => {
+            if (o.isMesh) {
+              o.castShadow = true;
+              o.receiveShadow = true;
+              if (o.material && o.material.map) {
+                o.material.map.encoding = THREE.sRGBEncoding;
+                o.material.needsUpdate = true;
+              }
             }
-          }
-        });
-        pbrm1.position.set(8.5, 15.5, -8.7);
-        pbrm1.scale.set(0.5, 0.5, 0.5);
-        pbrm1.rotation.y = THREE.MathUtils.degToRad(0);
-        scene.add(pbrm1);
-        pbrm1.userData.key = "pbrm1";
-        clickTargets.push(pbrm1);
-        pbrm1.traverse((o) => {
-          if (o.isMesh && o.material && o.material.color) o.userData.baseColor = o.material.color.clone();
-        });
-        hoverTargets.push(pbrm1);
-      });
+          });
+          pbrm1.position.set(8.5, 15.5, -8.7);
+          pbrm1.scale.set(0.5, 0.5, 0.5);
+          pbrm1.rotation.y = THREE.MathUtils.degToRad(0);
+          scene.add(pbrm1);
+          pbrm1.userData.key = "pbrm1";
+          clickTargets.push(pbrm1);
+          pbrm1.traverse((o) => {
+            if (o.isMesh && o.material && o.material.color)
+              o.userData.baseColor = o.material.color.clone();
+          });
+          hoverTargets.push(pbrm1);
+        }
+      );
 
-      loader.load("https://Maniwan.github.io/Portfolio_bow/3DModels/pbr.glb", (gltf) => {
-        pbr = gltf.scene;
-        pbr.traverse((o) => {
-          if (o.isMesh) {
-            o.castShadow = true;
-            o.receiveShadow = true;
-            if (o.material && o.material.map) {
-              o.material.map.encoding = THREE.sRGBEncoding;
-              o.material.needsUpdate = true;
+      loader.load(
+        "https://Maniwan.github.io/Portfolio_bow/3DModels/pbr.glb",
+        (gltf) => {
+          pbr = gltf.scene;
+          pbr.traverse((o) => {
+            if (o.isMesh) {
+              o.castShadow = true;
+              o.receiveShadow = true;
+              if (o.material && o.material.map) {
+                o.material.map.encoding = THREE.sRGBEncoding;
+                o.material.needsUpdate = true;
+              }
             }
-          }
-        });
-        pbr.position.set(48.6, 1, 46);
-        pbr.scale.set(1.5, 1.5, 1.5);
-        pbr.rotation.y = THREE.MathUtils.degToRad(0);
-        scene.add(pbr);
-      });
+          });
+          pbr.position.set(48.6, 1, 46);
+          pbr.scale.set(1.5, 1.5, 1.5);
+          pbr.rotation.y = THREE.MathUtils.degToRad(0);
+          scene.add(pbr);
+        }
+      );
 
-      loader.load("https://Maniwan.github.io/Portfolio_bow/3DModels/sign.glb", (gltf) => {
-        const sign = gltf.scene;
-        sign.traverse((o) => {
-          if (o.isMesh) {
-            o.castShadow = true;
-            o.receiveShadow = true;
-            if (o.material && o.material.map) {
-              o.material.map.encoding = THREE.sRGBEncoding;
-              o.material.needsUpdate = true;
+      loader.load(
+        "https://Maniwan.github.io/Portfolio_bow/3DModels/sign.glb",
+        (gltf) => {
+          const sign = gltf.scene;
+          sign.traverse((o) => {
+            if (o.isMesh) {
+              o.castShadow = true;
+              o.receiveShadow = true;
+              if (o.material && o.material.map) {
+                o.material.map.encoding = THREE.sRGBEncoding;
+                o.material.needsUpdate = true;
+              }
             }
-          }
-        });
-        sign.position.set(10, 12.2, -9);
-        sign.scale.set(3, 3, 3);
-        sign.rotation.y = THREE.MathUtils.degToRad(0);
-        scene.add(sign);
-      });
+          });
+          sign.position.set(10, 12.2, -9);
+          sign.scale.set(3, 3, 3);
+          sign.rotation.y = THREE.MathUtils.degToRad(0);
+          scene.add(sign);
+        }
+      );
 
-      loader.load("https://Maniwan.github.io/Portfolio_bow/3DModels/ku.glb", (gltf) => {
-        const ku = gltf.scene;
-        ku.traverse((o) => {
-          if (o.isMesh) {
-            o.castShadow = true;
-            o.receiveShadow = true;
-            if (o.material && o.material.map) {
-              o.material.map.encoding = THREE.sRGBEncoding;
-              o.material.needsUpdate = true;
+      loader.load(
+        "https://Maniwan.github.io/Portfolio_bow/3DModels/ku.glb",
+        (gltf) => {
+          const ku = gltf.scene;
+          ku.traverse((o) => {
+            if (o.isMesh) {
+              o.castShadow = true;
+              o.receiveShadow = true;
+              if (o.material && o.material.map) {
+                o.material.map.encoding = THREE.sRGBEncoding;
+                o.material.needsUpdate = true;
+              }
             }
-          }
-        });
-        ku.position.set(-93.4, 44, 75);
-        ku.scale.set(6, 6, 6);
-        ku.rotation.y = THREE.MathUtils.degToRad(120);
-        scene.add(ku);
-      });
+          });
+          ku.position.set(-93.4, 44, 75);
+          ku.scale.set(6, 6, 6);
+          ku.rotation.y = THREE.MathUtils.degToRad(120);
+          scene.add(ku);
+        }
+      );
 
-      loader.load("https://Maniwan.github.io/Portfolio_bow/3DModels/skybox2.glb", (gltf) => {
-        const skybox2 = gltf.scene;
-        skybox2.traverse((o) => {
-          if (o.isMesh) {
-            o.castShadow = true;
-            o.receiveShadow = true;
-            if (o.material && o.material.map) {
-              o.material.map.encoding = THREE.sRGBEncoding;
-              o.material.needsUpdate = true;
+      loader.load(
+        "https://Maniwan.github.io/Portfolio_bow/3DModels/skybox2.glb",
+        (gltf) => {
+          const skybox2 = gltf.scene;
+          skybox2.traverse((o) => {
+            if (o.isMesh) {
+              o.castShadow = true;
+              o.receiveShadow = true;
+              if (o.material && o.material.map) {
+                o.material.map.encoding = THREE.sRGBEncoding;
+                o.material.needsUpdate = true;
+              }
             }
-          }
-        });
-        skybox2.position.set(1, 1, 1);
-        skybox2.scale.set(1, 1, 1);
-        scene.add(skybox2);
-      });
+          });
+          skybox2.position.set(1, 1, 1);
+          skybox2.scale.set(1, 1, 1);
+          scene.add(skybox2);
+        }
+      );
 
-      loader.load("https://Maniwan.github.io/Portfolio_bow/3DModels/castle3.glb", (gltf) => {
-        const castle3 = gltf.scene;
-        castle3.traverse((o) => {
-          if (o.isMesh) {
-            o.castShadow = true;
-            o.receiveShadow = true;
-            if (o.material && o.material.map) {
-              o.material.map.encoding = THREE.sRGBEncoding;
-              o.material.needsUpdate = true;
+      loader.load(
+        "https://Maniwan.github.io/Portfolio_bow/3DModels/castle3.glb",
+        (gltf) => {
+          const castle3 = gltf.scene;
+          castle3.traverse((o) => {
+            if (o.isMesh) {
+              o.castShadow = true;
+              o.receiveShadow = true;
+              if (o.material && o.material.map) {
+                o.material.map.encoding = THREE.sRGBEncoding;
+                o.material.needsUpdate = true;
+              }
             }
-          }
-        });
-        castle3.position.set(1.5, 0.2, 0);
-        scene.add(castle3);
-      });
+          });
+          castle3.position.set(1.5, 0.2, 0);
+          scene.add(castle3);
+        }
+      );
 
-      loader.load("https://Maniwan.github.io/Portfolio_bow/3DModels/barbie.glb", (gltf) => {
-        const barbie = gltf.scene;
-        barbie.traverse((o) => {
-          if (o.isMesh) {
-            o.castShadow = true;
-            o.receiveShadow = true;
-            if (o.material && o.material.map) {
-              o.material.map.encoding = THREE.sRGBEncoding;
-              o.material.needsUpdate = true;
-            }
-          }
-        });
-        barbie.position.set(5, 12.2, -8);
-        barbie.scale.set(3, 3, 3);
-        barbie.rotation.y = THREE.MathUtils.degToRad(-5);
-        scene.add(barbie);
-      });
+      loader.load(
+        "https://Maniwan.github.io/Portfolio_bow/3DModels/barbie.glb",
+        (gltf) => {
+          const barbie = gltf.scene;
 
-      loader.load("https://Maniwan.github.io/Portfolio_bow/3DModels/bow.glb", (gltf) => {
-        const bow = gltf.scene;
-        bow.traverse((o) => {
-          if (o.isMesh) {
-            o.castShadow = true;
-            o.receiveShadow = true;
-            if (o.material && o.material.map) {
-              o.material.map.encoding = THREE.sRGBEncoding;
-              o.material.needsUpdate = true;
-            }
-          }
-        });
-        bow.position.set(-93.4, 32, 75);
-        bow.scale.set(5, 5, 5);
-        bow.rotation.y = THREE.MathUtils.degToRad(120);
-        scene.add(bow);
-      });
+          // 2.1 แปลงวัสดุเป็น MeshToonMaterial + gradientMap
+          barbie.traverse((o) => {
+            if (o.isMesh) {
+              const tex = o.material && o.material.map ? o.material.map : null;
+              const baseCol =
+                o.material && o.material.color
+                  ? o.material.color.clone()
+                  : new THREE.Color(0xffffff);
 
-      loader.load("https://Maniwan.github.io/Portfolio_bow/3DModels/back.glb", (gltf) => {
-        const back = gltf.scene;
-        back.traverse((o) => {
-          if (o.isMesh) {
-            o.castShadow = true;
-            o.receiveShadow = true;
-            if (o.material && o.material.map) {
-              o.material.map.encoding = THREE.sRGBEncoding;
-              o.material.needsUpdate = true;
-            }
-          }
-        });
-        back.position.set(-103, 32, 59);
-        back.scale.set(2, 2, 2);
-        back.rotation.y = THREE.MathUtils.degToRad(20);
-        scene.add(back);
-        back.userData.key = "back";
-        clickTargets.push(back);
-        back.traverse((o) => {
-          if (o.isMesh && o.material && o.material.color) o.userData.baseColor = o.material.color.clone();
-        });
-        hoverTargets.push(back);
-      });
+              const toonMat = new THREE.MeshToonMaterial({
+                color: baseCol, // คงโทนสีเดิมของชิ้นส่วน
+                map: tex || null,
+                gradientMap: CEL_GRADIENT,
+              });
 
-      loader.load("https://Maniwan.github.io/Portfolio_bow/3DModels/back1.glb", (gltf) => {
-        const back1 = gltf.scene;
-        back1.traverse((o) => {
-          if (o.isMesh) {
-            o.castShadow = true;
-            o.receiveShadow = true;
-            if (o.material && o.material.map) {
-              o.material.map.encoding = THREE.sRGBEncoding;
-              o.material.needsUpdate = true;
+              // ปรับความเข้มสีรวม เพื่อให้ดูเป็น cel มากขึ้น
+              toonMat.color.multiplyScalar(0.9);
+
+              if (toonMat.map) {
+                toonMat.map.encoding = THREE.sRGBEncoding;
+                toonMat.map.needsUpdate = true;
+              }
+
+              o.material = toonMat;
+              o.castShadow = true;
+              o.receiveShadow = true;
             }
-          }
-        });
-        back1.position.set(56, -1, 46);
-        back1.scale.set(1.5, 1.5, 1.5);
-        back1.rotation.y = THREE.MathUtils.degToRad(-110);
-        scene.add(back1);
-        back1.userData.key = "back1";
-        clickTargets.push(back1);
-        back1.traverse((o) => {
-          if (o.isMesh && o.material && o.material.color) o.userData.baseColor = o.material.color.clone();
-        });
-        hoverTargets.push(back1);
-      });
+          });
+
+          // 2.2 เพิ่ม "เส้นขอบ" ด้วยการ clone + BackSide material
+          const outline = barbie.clone();
+          outline.traverse((o) => {
+            if (o.isMesh) {
+              o.material = new THREE.MeshBasicMaterial({
+                color: 0x000000,
+                side: THREE.BackSide,
+              });
+              // หนาเส้นขอบ: 1.003 หนาขึ้น / 1.001 บางลง
+              o.scale.multiplyScalar(1.002);
+            }
+          });
+          barbie.add(outline);
+
+          // 2.3 จัดวางตำแหน่งตามเดิม
+          barbie.position.set(5, 12.2, -8);
+          barbie.scale.set(3, 3, 3);
+          barbie.rotation.x = THREE.MathUtils.degToRad(90);
+
+          scene.add(barbie);
+        }
+      );
+
+      loader.load(
+        "https://Maniwan.github.io/Portfolio_bow/3DModels/bow.glb",
+        (gltf) => {
+          const bow = gltf.scene;
+          bow.traverse((o) => {
+            if (o.isMesh) {
+              o.castShadow = true;
+              o.receiveShadow = true;
+              if (o.material && o.material.map) {
+                o.material.map.encoding = THREE.sRGBEncoding;
+                o.material.needsUpdate = true;
+              }
+            }
+          });
+          bow.position.set(-93.4, 32, 75);
+          bow.scale.set(5, 5, 5);
+          bow.rotation.y = THREE.MathUtils.degToRad(120);
+          scene.add(bow);
+        }
+      );
+
+      loader.load(
+        "https://Maniwan.github.io/Portfolio_bow/3DModels/back.glb",
+        (gltf) => {
+          const back = gltf.scene;
+          back.traverse((o) => {
+            if (o.isMesh) {
+              o.castShadow = true;
+              o.receiveShadow = true;
+              if (o.material && o.material.map) {
+                o.material.map.encoding = THREE.sRGBEncoding;
+                o.material.needsUpdate = true;
+              }
+            }
+          });
+          back.position.set(-103, 32, 59);
+          back.scale.set(2, 2, 2);
+          back.rotation.y = THREE.MathUtils.degToRad(20);
+          scene.add(back);
+          back.userData.key = "back";
+          clickTargets.push(back);
+          back.traverse((o) => {
+            if (o.isMesh && o.material && o.material.color)
+              o.userData.baseColor = o.material.color.clone();
+          });
+          hoverTargets.push(back);
+        }
+      );
+
+      loader.load(
+        "https://Maniwan.github.io/Portfolio_bow/3DModels/back1.glb",
+        (gltf) => {
+          const back1 = gltf.scene;
+          back1.traverse((o) => {
+            if (o.isMesh) {
+              o.castShadow = true;
+              o.receiveShadow = true;
+              if (o.material && o.material.map) {
+                o.material.map.encoding = THREE.sRGBEncoding;
+                o.material.needsUpdate = true;
+              }
+            }
+          });
+          back1.position.set(56, -1, 46);
+          back1.scale.set(1.5, 1.5, 1.5);
+          back1.rotation.y = THREE.MathUtils.degToRad(-110);
+          scene.add(back1);
+          back1.userData.key = "back1";
+          clickTargets.push(back1);
+          back1.traverse((o) => {
+            if (o.isMesh && o.material && o.material.color)
+              o.userData.baseColor = o.material.color.clone();
+          });
+          hoverTargets.push(back1);
+        }
+      );
 
       /* ========================
          Click to move camera
@@ -383,7 +512,9 @@
       ========================= */
       (function animate() {
         requestAnimationFrame(animate);
-        const dt = (window.__clock || (window.__clock = new THREE.Clock())).getDelta();
+        const dt = (
+          window.__clock || (window.__clock = new THREE.Clock())
+        ).getDelta();
 
         raycaster.setFromCamera(mouse, camera);
         const hits = raycaster.intersectObjects(hoverTargets, true);
@@ -397,7 +528,12 @@
 
         if (prevHover && prevHover !== hoveredRoot) {
           prevHover.traverse((o) => {
-            if (o.isMesh && o.material && o.material.color && o.userData.baseColor) {
+            if (
+              o.isMesh &&
+              o.material &&
+              o.material.color &&
+              o.userData.baseColor
+            ) {
               o.material.color.copy(o.userData.baseColor);
             }
           });
@@ -405,7 +541,8 @@
 
         if (hoveredRoot) {
           hoveredRoot.traverse((o) => {
-            if (o.isMesh && o.material && o.material.color) o.material.color.set(0x00ff00);
+            if (o.isMesh && o.material && o.material.color)
+              o.material.color.set(0x00ff00);
           });
         }
 
@@ -417,7 +554,10 @@
           camera.position.lerp(camTargetPos, Math.min(1, 5 * dt));
           camCurrentLook.lerp(camTargetLook, Math.min(1, 5 * dt));
           camera.lookAt(camCurrentLook);
-          if (camera.position.distanceTo(camTargetPos) < 0.02 && camCurrentLook.distanceTo(camTargetLook) < 0.02) {
+          if (
+            camera.position.distanceTo(camTargetPos) < 0.02 &&
+            camCurrentLook.distanceTo(camTargetLook) < 0.02
+          ) {
             camera.position.copy(camTargetPos);
             camCurrentLook.copy(camTargetLook);
             camera.lookAt(camCurrentLook);
