@@ -23,11 +23,83 @@
     <script src="https://cdn.jsdelivr.net/npm/dat.gui@0.7.9/build/dat.gui.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/DRACOLoader.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/PointerLockControls.js"></script>
-  </head>
 
+    <!-- Start Screen -->
+    <div id="start-screen">
+      <div class="start-card">
+        <button id="start-btn" class="start-btn">Start</button>
+      </div>
+    </div>
+    <style>
+      /* หน้า Start */
+      #start-screen {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        background-color: #ffe6f0; /* พื้นหลังชมพูอ่อน */
+        opacity: 1;
+        transition: opacity 0.6s ease;
+      }
+      #start-screen.hidden {
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      .start-card {
+        padding: 48px 62px;
+        border-radius: 40px;
+        background: rgba(255, 255, 255, 0.6);
+        color: #ff4d94;
+        font-family: "Prompt", system-ui, sans-serif;
+        text-align: center;
+        box-shadow: 0 10px 30px rgba(255, 105, 180, 0.4);
+        max-width: 420px;
+        width: calc(100% - 40px);
+      }
+      .start-title {
+        font-size: 100px;
+        margin: 0 0 8px 0;
+      }
+      .start-sub {
+        font-size:100px;
+        opacity: 0.8;
+        margin-bottom: 18px;
+      }
+      .start-btn {
+        padding: 30px 80px;
+        border-radius: 12px;
+        border: none;
+        cursor: pointer;
+        background: #ff69b4;
+        color: white;
+        font-weight: 600;
+        transition: transform 0.08s ease, filter 0.2s ease;
+        font-size: 50px;
+      }
+      .start-btn:hover {
+        filter: brightness(1.1);
+      }
+      .start-btn:active {
+        transform: scale(0.97);
+      }
+    </style>
+  </head>
   <body>
     <script>
+      // === หน้า Start ===
+      const startScreen = document.getElementById("start-screen");
+      const startBtn = document.getElementById("start-btn");
+
+      startBtn.addEventListener("click", () => {
+        startScreen.classList.add("hidden");
+
+        // ถ้ามีต้องการเริ่ม animation หรือเสียงตรงนี้ก็ใส่ได้
+        // เช่น เริ่มหมุนโมเดล หรือเปิดเพลง
+      });
+
       /* ========================
          Setup: renderer, scene, camera, raycaster
       ========================= */
@@ -58,6 +130,16 @@
       );
       camera.position.set(6.9, 19, 0);
       camera.lookAt(6.9, 19, -10);
+
+      const controls = new THREE.OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.08;
+      controls.enablePan = false;
+      controls.minDistance = 5;
+      controls.maxDistance = 300;
+      controls.maxPolarAngle = Math.PI / 2; // ไม่ให้หมุนลอดพื้น
+      controls.target.set(6.9, 19, -10);
+      controls.update();
 
       /* ========================
          Lighting
@@ -115,40 +197,53 @@
       ground.receiveShadow = true;
       scene.add(ground);
 
-      /* ========================
-         Camera presets & click-to-move
-      ========================= */
+      const clickTargets = []; // เก็บ root ที่ "คลิกได้"
+      let textRoot = null;
+      let pbrm1Root = null;
+      let backRoot = null;
+      let back1Root = null;
+
+      // เป้าหมายตำแหน่งกล้องและจุดที่อยากให้มอง
       const camTargetPos = new THREE.Vector3();
       const camTargetLook = new THREE.Vector3();
-      const camCurrentLook = new THREE.Vector3();
       let camLerping = false;
-      function startCamMove(pos, look) {
-        camTargetPos.copy(pos);
-        camTargetLook.copy(look);
-        if (!camLerping) camCurrentLook.copy(look);
-        camLerping = true;
-      }
-      const clickTargets = [];
 
-      const CAM_PRESET = {
-        text: {
-          pos: new THREE.Vector3(-71.3, 34, 60),
-          look: new THREE.Vector3(-95, 34, 74),
-        },
-        pbrm1: {
-          pos: new THREE.Vector3(50, 2, 55),
-          look: new THREE.Vector3(51, 2, 42),
-        },
-        back: {
-          pos: new THREE.Vector3(6.9, 19, 0),
-          look: new THREE.Vector3(6.9, 19, -10),
-        },
-        back1: {
-          pos: new THREE.Vector3(6.9, 19, 0),
-          look: new THREE.Vector3(6.9, 19, -10),
-        },
-      };
+      // คลิกเพื่อย้ายกล้อง
+      renderer.domElement.addEventListener("click", () => {
+        // ใช้ตำแหน่งเมาส์ที่อัปเดตจาก mousemove
+        raycaster.setFromCamera(mouse, camera);
+        const hits = raycaster.intersectObjects(clickTargets, true);
+        if (!hits.length) return;
 
+        // หา root ที่อยู่ใน clickTargets
+        let node = hits[0].object,
+          root = null;
+        while (node) {
+          if (clickTargets.includes(node)) {
+            root = node;
+            break;
+          }
+          node = node.parent;
+        }
+        if (!root) return;
+        if (root === textRoot) {
+          camTargetPos.set(-71.3, 34, 60);
+          camTargetLook.set(-95, 34, 74);
+        } else if (root === pbrm1Root) {
+          camTargetPos.set(50, 2, 55);
+          camTargetLook.set(51, 2, 42);
+        } else if (root === backRoot) {
+          camTargetPos.set(6.9, 19, 0);
+          camTargetLook.set(6.9, 19, -10);
+        } else if (root === back1Root) {
+          camTargetPos.set(6.9, 19, 0);
+          camTargetLook.set(6.9, 19, -10);
+        } else {
+          return;
+        }
+
+        camLerping = true; // เริ่มเลื่อนกล้อง
+      });
       let pbr = null;
 
       // === Gradient map สำหรับ Toon (โทนแสงเป็นขั้น ๆ) ===
@@ -185,8 +280,10 @@
             if (o.isMesh) {
               o.castShadow = true;
               o.receiveShadow = true;
-              if (o.material && o.material.map) {
-                o.material.map.encoding = THREE.sRGBEncoding;
+
+              if (o.material) {
+                o.material.map = null;
+                o.material.color.set(0xff69b4);
                 o.material.needsUpdate = true;
               }
             }
@@ -216,13 +313,13 @@
           text.scale.set(0.8, 0.8, 0.8);
           text.rotation.y = THREE.MathUtils.degToRad(0);
           scene.add(text);
-          text.userData.key = "text";
+          textRoot = text;
+          hoverTargets.push(text);
           clickTargets.push(text);
           text.traverse((o) => {
             if (o.isMesh && o.material && o.material.color)
               o.userData.baseColor = o.material.color.clone();
           });
-          hoverTargets.push(text);
         }
       );
 
@@ -244,13 +341,13 @@
           pbrm1.scale.set(0.5, 0.5, 0.5);
           pbrm1.rotation.y = THREE.MathUtils.degToRad(0);
           scene.add(pbrm1);
-          pbrm1.userData.key = "pbrm1";
+          pbrm1Root = pbrm1;
           clickTargets.push(pbrm1);
+          hoverTargets.push(pbrm1);
           pbrm1.traverse((o) => {
             if (o.isMesh && o.material && o.material.color)
               o.userData.baseColor = o.material.color.clone();
           });
-          hoverTargets.push(pbrm1);
         }
       );
 
@@ -452,13 +549,13 @@
           back.scale.set(2, 2, 2);
           back.rotation.y = THREE.MathUtils.degToRad(20);
           scene.add(back);
-          back.userData.key = "back";
+          backRoot = back;
           clickTargets.push(back);
+          hoverTargets.push(back);
           back.traverse((o) => {
             if (o.isMesh && o.material && o.material.color)
               o.userData.baseColor = o.material.color.clone();
           });
-          hoverTargets.push(back);
         }
       );
 
@@ -480,32 +577,15 @@
           back1.scale.set(1.5, 1.5, 1.5);
           back1.rotation.y = THREE.MathUtils.degToRad(-110);
           scene.add(back1);
-          back1.userData.key = "back1";
+          back1Root = back1;
           clickTargets.push(back1);
+          hoverTargets.push(back1);
           back1.traverse((o) => {
             if (o.isMesh && o.material && o.material.color)
               o.userData.baseColor = o.material.color.clone();
           });
-          hoverTargets.push(back1);
         }
       );
-
-      /* ========================
-         Click to move camera
-      ========================= */
-      window.addEventListener("mousedown", (e) => {
-        const mx = (e.clientX / window.innerWidth) * 2 - 1;
-        const my = -(e.clientY / window.innerHeight) * 2 + 1;
-        raycaster.setFromCamera({ x: mx, y: my }, camera);
-        const hits = raycaster.intersectObjects(clickTargets, true);
-        if (!hits.length) return;
-        let obj = hits[0].object;
-        while (obj && !clickTargets.includes(obj)) obj = obj.parent;
-        if (!obj) return;
-        const key = obj.userData.key;
-        const preset = CAM_PRESET[key];
-        if (preset) startCamMove(preset.pos, preset.look);
-      });
 
       /* ========================
          Animation loop
@@ -542,7 +622,7 @@
         if (hoveredRoot) {
           hoveredRoot.traverse((o) => {
             if (o.isMesh && o.material && o.material.color)
-              o.material.color.set(0x00ff00);
+              o.material.color.set(0xff69b4);
           });
         }
 
@@ -550,17 +630,18 @@
 
         if (pbr) pbr.rotation.y += 0.005;
 
+        // Lerp กล้องด้วย OrbitControls
         if (camLerping) {
-          camera.position.lerp(camTargetPos, Math.min(1, 5 * dt));
-          camCurrentLook.lerp(camTargetLook, Math.min(1, 5 * dt));
-          camera.lookAt(camCurrentLook);
+          camera.position.lerp(camTargetPos, 0.08);
+          controls.target.lerp(camTargetLook, 0.08);
+          controls.update();
           if (
-            camera.position.distanceTo(camTargetPos) < 0.02 &&
-            camCurrentLook.distanceTo(camTargetLook) < 0.02
+            camera.position.distanceTo(camTargetPos) < 0.05 &&
+            controls.target.distanceTo(camTargetLook) < 0.05
           ) {
             camera.position.copy(camTargetPos);
-            camCurrentLook.copy(camTargetLook);
-            camera.lookAt(camCurrentLook);
+            controls.target.copy(camTargetLook);
+            controls.update();
             camLerping = false;
           }
         }
